@@ -31,4 +31,13 @@
         android:layout_below="@+id/idUser"
         android:layout_centerHorizontal="true" />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Button"
+        android:id="@+id/button"
+        android:layout_alignBottom="@+id/buttonCall"
+        android:layout_toLeftOf="@+id/buttonCall"
+        android:layout_toStartOf="@+id/buttonCall" />
+
 </RelativeLayout>

@@ -40,6 +40,7 @@ import org.webrtc.VideoTrack;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.regex.Matcher;
@@ -103,7 +104,7 @@ public class PeerJSActivity extends Activity {
                     createPC();
                 } else {
 
-                    //client.send("BUY");
+                    //client.send("{\"type\": \"bye\"}");
                     disconnectAndExit();
                 }
             }
@@ -195,6 +196,7 @@ public class PeerJSActivity extends Activity {
         peerConnection = factory.createPeerConnection(iceServers, pcConstraints, pcObserver);
         // а это и есть наше подключение
 
+
         createDataChannelToRegressionTestBug2302(peerConnection);
         // проводим какую-то проверку подключения
 
@@ -214,7 +216,8 @@ public class PeerJSActivity extends Activity {
 
         audioTrack = factory.createAudioTrack("ARDAMSa0", factory.createAudioSource(new MediaConstraints())); // наше аудио с микрофона
         localMediaStream.addTrack(audioTrack);
-        peerConnection.addStream(localMediaStream/*, new MediaConstraints()*/);
+        peerConnection.addStream(localMediaStream /*, new MediaConstraints()*/);
+
 
         getID();
         /*GetID getId = new GetID();
@@ -292,9 +295,17 @@ public class PeerJSActivity extends Activity {
                         if (initiator){
                             logAndToast("Creating offer...");
                             peerConnection.createOffer(sdpObserver, sdpMediaConstraints);
+
+
                         }
                     }
                 });
+            }
+
+            @Override
+            public void onMessage(ByteBuffer bytes) {
+                super.onMessage(bytes);
+                Log.d("ON_MESSAGE_LOG","onMessage(ByteBuffer bytes)");
             }
 
             @Override
@@ -302,6 +313,8 @@ public class PeerJSActivity extends Activity {
                 runOnUiThread(new Runnable() {
                     public void run() {
                         try {
+
+                            Log.d("ON_MESSAGE_LOG", "Data = "+data);
                             JSONObject json = new JSONObject(data);
                             String type = (String) json.get("type");
                             if (type.equalsIgnoreCase("candidate")) {
@@ -356,7 +369,8 @@ public class PeerJSActivity extends Activity {
             }
         };
 
-        client.connect();
+        //client.getConnection().
+                client.connect();
 
     }
 
@@ -458,17 +472,26 @@ public class PeerJSActivity extends Activity {
 
         @Override
         public void onSignalingChange(PeerConnection.SignalingState newState) {
-
+            Log.d("ON_CHANGE", "SignalingState = "+newState.name());
         }
 
         @Override
         public void onIceConnectionChange(PeerConnection.IceConnectionState newState) {
-
+            // here
+            if(newState.name().equals("DISCONNECTED")) {
+                peerConnection.close();
+                peerConnection = null;
+                videoSource.stop();
+                videoSource = null;
+                factory = null;
+                disconnectAndExit();
+            }
+            Log.d("ON_CHANGE", "IceConnectionState = "+newState.name());
         }
 
         @Override
         public void onIceGatheringChange(PeerConnection.IceGatheringState newState) {
-
+            Log.d("ON_CHANGE", "IceGatheringState = "+newState.name());
         }
 
         @Override
@@ -493,7 +516,7 @@ public class PeerJSActivity extends Activity {
 
         @Override
         public void onDataChannel(final DataChannel dc) {
-
+            Log.d("ON_MESSAGE_LOG","onDataChannel()");
         }
 
         @Override
@@ -513,6 +536,7 @@ public class PeerJSActivity extends Activity {
             runOnUiThread(new Runnable() {
                 public void run() {
                     peerConnection.setLocalDescription(sdpObserver, sdp);
+
                 }
             });
         }

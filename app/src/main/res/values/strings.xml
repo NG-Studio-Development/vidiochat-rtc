@@ -7,4 +7,12 @@
     <string name="title_activity_peer_js">PeerJSActivity</string>
 
     <string name="hello_world">Hello world!</string>
+    <string name="title_activity_message">MessageActivity</string>
+
+    <string name="button_novideo">No video</string>
+    <string name="button_video">Video</string>
+    <string name="button_noaudio">No audio</string>
+    <string name="button_audio">Audio</string>
+
+
 </resources>
