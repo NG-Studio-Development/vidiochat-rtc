@@ -34,10 +34,19 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New Button"
-        android:id="@+id/button"
+        android:text="@string/button_novideo"
+        android:id="@+id/buttonVideo"
         android:layout_alignBottom="@+id/buttonCall"
         android:layout_toLeftOf="@+id/buttonCall"
         android:layout_toStartOf="@+id/buttonCall" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/button_noaudio"
+        android:id="@+id/buttonAudio"
+        android:layout_alignBottom="@+id/buttonCall"
+        android:layout_toRightOf="@+id/idUser"
+        android:layout_toEndOf="@+id/idUser" />
 
 </RelativeLayout>

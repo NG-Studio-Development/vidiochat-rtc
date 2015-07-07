@@ -96,6 +96,40 @@ public class PeerJSActivity extends Activity {
 
         tvIdUser = (TextView) findViewById(R.id.idUser);
 
+        final Button buttonVideo = (Button) findViewById(R.id.buttonVideo);
+        buttonVideo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (video){
+                    buttonVideo.setText(getString(R.string.button_video));
+                    video = false;
+                    videoTrack.setEnabled(false);
+                }else{
+                    buttonVideo.setText(getString(R.string.button_novideo));
+                    video = true;
+                    videoTrack.setEnabled(true);
+                }
+            }
+        });
+
+        final Button buttonAudio = (Button) findViewById(R.id.buttonAudio);
+        buttonAudio.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (audio){
+                    Log.d("BUTTON", "Audio OFF");
+                    buttonAudio.setText(getString(R.string.button_audio));
+                    audio = false;
+                    audioTrack.setEnabled(false);
+                }else{
+                    Log.d("BUTTON", "Audio ON");
+                    buttonAudio.setText(getString(R.string.button_noaudio));
+                    audio = true;
+                    audioTrack.setEnabled(true);
+                }
+            }
+        });
+
         Button buttonCall = (Button) findViewById(R.id.buttonCall);
         buttonCall.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -103,7 +137,6 @@ public class PeerJSActivity extends Activity {
                 if (client == null) {
                     createPC();
                 } else {
-
                     //client.send("{\"type\": \"bye\"}");
                     disconnectAndExit();
                 }
@@ -217,7 +250,6 @@ public class PeerJSActivity extends Activity {
         audioTrack = factory.createAudioTrack("ARDAMSa0", factory.createAudioSource(new MediaConstraints())); // наше аудио с микрофона
         localMediaStream.addTrack(audioTrack);
         peerConnection.addStream(localMediaStream /*, new MediaConstraints()*/);
-
 
         getID();
         /*GetID getId = new GetID();
