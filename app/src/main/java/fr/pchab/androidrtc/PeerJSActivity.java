@@ -12,7 +12,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.Request;
@@ -55,7 +54,7 @@ public class PeerJSActivity extends Activity {
     private final static String TAG = "PEER_JS_ACTIVITY_LOG";
     private final static int KEY_START_CALL = 10;
 
-    private TextView tvIdUser;
+    //private TextView tvIdUser;
 
     private static boolean factoryStaticInitialized;
     private GLSurfaceView surfaceView;
@@ -105,7 +104,7 @@ public class PeerJSActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_peer_js);
 
-        tvIdUser = (TextView) findViewById(R.id.idUser);
+        //tvIdUser = (TextView) findViewById(R.id.idUser);
 
         handler = new Handler() {
             public void handleMessage(android.os.Message msg) {
@@ -305,7 +304,7 @@ public class PeerJSActivity extends Activity {
                     @Override
                     public void onResponse(String response) {
                         // Display the first 500 characters of the response string.
-                        tvIdUser.setText(response);
+                        //tvIdUser.setText(response);
                         onResponseGetID(response);
                     }
                 }, new Response.ErrorListener() {
