@@ -1,9 +1,12 @@
 package fr.pchab.androidrtc;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.media.AudioManager;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -50,11 +53,15 @@ import java.util.regex.Pattern;
 public class PeerJSActivity extends Activity {
 
     private final static String TAG = "PEER_JS_ACTIVITY_LOG";
+    private final static int KEY_START_CALL = 10;
 
     private TextView tvIdUser;
 
     private static boolean factoryStaticInitialized;
     private GLSurfaceView surfaceView;
+    private Button buttonAudio;
+    private Button buttonVideo;
+    private Button buttonCall;
     private VideoRenderer.Callbacks localRender;
     private VideoRenderer.Callbacks remoteRender;
     private VideoRenderer localRenderer;
@@ -76,6 +83,7 @@ public class PeerJSActivity extends Activity {
     private LinkedList<PeerConnection.IceServer> iceServers = new LinkedList<PeerConnection.IceServer>();
     private LinkedList<IceCandidate> queuedRemoteCandidates = new LinkedList<IceCandidate>();
     private AudioManager audioManager;
+    private Handler handler;
 
     private Toast logToast;
     private final Boolean[] quit = new Boolean[] { false };
@@ -87,6 +95,9 @@ public class PeerJSActivity extends Activity {
     private String roomKey = "thnr9tphiwdeipb9";
     private String friendId;
 
+    LinearLayout content;
+
+    ProgressDialog progressDialog;
 
 
     @Override
@@ -96,15 +107,35 @@ public class PeerJSActivity extends Activity {
 
         tvIdUser = (TextView) findViewById(R.id.idUser);
 
-        final Button buttonVideo = (Button) findViewById(R.id.buttonVideo);
+        handler = new Handler() {
+            public void handleMessage(android.os.Message msg) {
+                if (msg.what == KEY_START_CALL) {
+                    createPC();
+                }
+            };
+        };
+
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("calling...");
+        progressDialog.setCancelable(false);
+        progressDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                handler.sendEmptyMessage(KEY_START_CALL);
+
+            }
+        });
+
+
+        buttonVideo = (Button) findViewById(R.id.buttonVideo);
         buttonVideo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (video){
+                if (video) {
                     buttonVideo.setText(getString(R.string.button_video));
                     video = false;
                     videoTrack.setEnabled(false);
-                }else{
+                } else {
                     buttonVideo.setText(getString(R.string.button_novideo));
                     video = true;
                     videoTrack.setEnabled(true);
@@ -112,17 +143,15 @@ public class PeerJSActivity extends Activity {
             }
         });
 
-        final Button buttonAudio = (Button) findViewById(R.id.buttonAudio);
+        buttonAudio = (Button) findViewById(R.id.buttonAudio);
         buttonAudio.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (audio){
-                    Log.d("BUTTON", "Audio OFF");
+                if (audio) {
                     buttonAudio.setText(getString(R.string.button_audio));
                     audio = false;
                     audioTrack.setEnabled(false);
-                }else{
-                    Log.d("BUTTON", "Audio ON");
+                } else {
                     buttonAudio.setText(getString(R.string.button_noaudio));
                     audio = true;
                     audioTrack.setEnabled(true);
@@ -130,23 +159,26 @@ public class PeerJSActivity extends Activity {
             }
         });
 
-        Button buttonCall = (Button) findViewById(R.id.buttonCall);
+        buttonCall = (Button) findViewById(R.id.buttonCall);
         buttonCall.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (client == null) {
-                    createPC();
+                    progressDialog.show();
+
                 } else {
-                    //client.send("{\"type\": \"bye\"}");
+
                     disconnectAndExit();
                 }
             }
         });
 
         surfaceView = new GLSurfaceView(this);
+
         surfaceView.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
-        LinearLayout content = (LinearLayout)findViewById(R.id.activity_webrtc_content);
+        content = (LinearLayout)findViewById(R.id.activity_webrtc_content);
         content.addView(surfaceView);
+        surfaceView.setVisibility(View.INVISIBLE);
 
         VideoRendererGui.setView(surfaceView, new Runnable() {
             @Override
@@ -154,8 +186,11 @@ public class PeerJSActivity extends Activity {
 
             }
         });
+
         remoteRender = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_FILL, false);
         localRender = VideoRendererGui.create(1, 74, 25, 25, VideoRendererGui.ScalingType.SCALE_FILL, false);
+
+        //localRenderer.dispose();
 
         if (!factoryStaticInitialized) {
             PeerConnectionFactory.initializeAndroidGlobals(this, true, true, true, new Object());
@@ -164,8 +199,7 @@ public class PeerJSActivity extends Activity {
 
         audioManager = ((AudioManager) getSystemService(AUDIO_SERVICE));
 
-
-
+        tuningInterface(OFF_CALL_STATE);
 
         @SuppressWarnings("deprecation")
         boolean isWiredHeadsetOn = audioManager.isWiredHeadsetOn();
@@ -202,20 +236,26 @@ public class PeerJSActivity extends Activity {
         iceServers.add(new PeerConnection.IceServer("turn:numb.viagenie.ca","webrtc@live.com","muazkh"));
         iceServers.add(new PeerConnection.IceServer("turn:192.158.29.39:3478?transport=udp","28224511:1379330808","JZEOEt2V3Qb0y27GRntt2u2PAYA="));
         iceServers.add(new PeerConnection.IceServer("turn:192.158.29.39:3478?transport=tcp","28224511:1379330808","JZEOEt2V3Qb0y27GRntt2u2PAYA="));*/
-
-
-
-
-
-
-
-
-
     }
 
 
+    private void tuningInterface (int state) {
+        if ( state == ON_CALL_STATE ) {
+            buttonVideo.setVisibility(View.VISIBLE);
+            buttonAudio.setVisibility(View.VISIBLE);
+            buttonCall.setText(getString(R.string.button_nocall));
+        } else if ( state == OFF_CALL_STATE ) {
+            buttonVideo.setVisibility(View.INVISIBLE);
+            buttonAudio.setVisibility(View.INVISIBLE);
+            buttonCall.setText(getString(R.string.button_call));
+        }
+    }
 
-    void createPC(){
+    private static final int ON_CALL_STATE = 0;
+    private static final int OFF_CALL_STATE = 1;
+
+
+    void createPC() {
         quit[0] = false;
 
         factory = new PeerConnectionFactory();
@@ -228,7 +268,6 @@ public class PeerJSActivity extends Activity {
 
         peerConnection = factory.createPeerConnection(iceServers, pcConstraints, pcObserver);
         // а это и есть наше подключение
-
 
         createDataChannelToRegressionTestBug2302(peerConnection);
         // проводим какую-то проверку подключения
@@ -250,15 +289,9 @@ public class PeerJSActivity extends Activity {
         audioTrack = factory.createAudioTrack("ARDAMSa0", factory.createAudioSource(new MediaConstraints())); // наше аудио с микрофона
         localMediaStream.addTrack(audioTrack);
         peerConnection.addStream(localMediaStream /*, new MediaConstraints()*/);
+        surfaceView.setVisibility(View.VISIBLE);
 
         getID();
-        /*GetID getId = new GetID();
-        try {
-            getId.execute(); //запускаем асинхронную задачу, которая выполнит http-запрос на получение id от брокера
-        }catch (Exception e) {
-            logAndToast("No Internet connection");
-            disconnectAndExit();
-        } */
     }
 
 
@@ -295,8 +328,6 @@ public class PeerJSActivity extends Activity {
 
             }
         });
-
-
         queue.add(operatorIdRequest);
     }
 
@@ -327,8 +358,6 @@ public class PeerJSActivity extends Activity {
                         if (initiator){
                             logAndToast("Creating offer...");
                             peerConnection.createOffer(sdpObserver, sdpMediaConstraints);
-
-
                         }
                     }
                 });
@@ -337,7 +366,6 @@ public class PeerJSActivity extends Activity {
             @Override
             public void onMessage(ByteBuffer bytes) {
                 super.onMessage(bytes);
-                Log.d("ON_MESSAGE_LOG","onMessage(ByteBuffer bytes)");
             }
 
             @Override
@@ -368,6 +396,8 @@ public class PeerJSActivity extends Activity {
                                         SessionDescription.Type.fromCanonicalForm(type),
                                         preferISAC((String) jsonSdp.get("sdp")));
                                 peerConnection.setRemoteDescription(sdpObserver, sdp);
+                                tuningInterface(ON_CALL_STATE);
+                                progressDialog.dismiss();
                             } else if (type.equalsIgnoreCase("bye")) {
                                 logAndToast("Remote end hung up; dropping PeerConnection");
                                 disconnectAndExit();
@@ -400,10 +430,7 @@ public class PeerJSActivity extends Activity {
                 });
             }
         };
-
-        //client.getConnection().
-                client.connect();
-
+        client.connect();
     }
 
     // освобождаем все ресурсы и выходим
@@ -413,6 +440,8 @@ public class PeerJSActivity extends Activity {
                 return;
             }
             quit[0] = true;
+            tuningInterface(OFF_CALL_STATE);
+
             if (peerConnection != null) {
                 peerConnection.dispose();
                 peerConnection = null;
@@ -430,10 +459,9 @@ public class PeerJSActivity extends Activity {
                 factory.dispose();
                 factory = null;
             }
+
             //if (audioManager!=null)
                 //audioManager.abandonAudioFocus(audioFocusListener);
-
-            //finish();
         }
     }
 
@@ -513,9 +541,12 @@ public class PeerJSActivity extends Activity {
             if(newState.name().equals("DISCONNECTED")) {
                 peerConnection.close();
                 peerConnection = null;
+
                 videoSource.stop();
+                videoSourceStopped = true;
                 videoSource = null;
                 factory = null;
+
                 disconnectAndExit();
             }
             Log.d("ON_CHANGE", "IceConnectionState = "+newState.name());
@@ -548,7 +579,7 @@ public class PeerJSActivity extends Activity {
 
         @Override
         public void onDataChannel(final DataChannel dc) {
-            Log.d("ON_MESSAGE_LOG","onDataChannel()");
+            //Log.d("ON_MESSAGE_LOG","onDataChannel()");
         }
 
         @Override

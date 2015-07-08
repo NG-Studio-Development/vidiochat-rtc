@@ -11,8 +11,10 @@
         android:layout_height="wrap_content"
         android:id="@+id/activity_webrtc_content"
         android:orientation="vertical"
-        android:layout_below="@+id/buttonCall"
-        android:layout_centerHorizontal="true"></LinearLayout>
+        android:layout_below="@+id/idUser"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@+id/linearLayout"
+        android:background="@color/gray_light"></LinearLayout>
 
     <TextView
         android:layout_width="wrap_content"
@@ -23,30 +25,33 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
 
-    <Button
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Call"
-        android:id="@+id/buttonCall"
-        android:layout_below="@+id/idUser"
-        android:layout_centerHorizontal="true" />
+        android:layout_alignParentBottom="true"
+        android:id="@+id/linearLayout">
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/button_novideo"
-        android:id="@+id/buttonVideo"
-        android:layout_alignBottom="@+id/buttonCall"
-        android:layout_toLeftOf="@+id/buttonCall"
-        android:layout_toStartOf="@+id/buttonCall" />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/button_novideo"
+            android:id="@+id/buttonVideo"
+            android:layout_weight="1" />
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/button_noaudio"
-        android:id="@+id/buttonAudio"
-        android:layout_alignBottom="@+id/buttonCall"
-        android:layout_toRightOf="@+id/idUser"
-        android:layout_toEndOf="@+id/idUser" />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Call"
+            android:id="@+id/buttonCall"
+            android:layout_weight="1" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/button_noaudio"
+            android:id="@+id/buttonAudio"
+            android:layout_weight="1"/>
+    </LinearLayout>
 
 </RelativeLayout>
