@@ -2,8 +2,11 @@ package fr.pchab.androidrtc;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.media.AudioManager;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.Handler;
@@ -88,8 +91,8 @@ public class PeerJSActivity extends Activity {
     private final Boolean[] quit = new Boolean[] { false };
     private String id;
 
-    private String token = "frpchabandroidrtcX"; // здесь указываем набор символов, я использую имя пакета без точек
-    private String connectionId = "mc_frpchabandroidrtcX"; // также случайный набор символов, только в начале "mc_"
+    private String token = "frpchabandroidrtcX";
+    private String connectionId = "mc_frpchabandroidrtcX";
 
     private String roomKey = "thnr9tphiwdeipb9";
     private String friendId;
@@ -104,7 +107,6 @@ public class PeerJSActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_peer_js);
 
-        //tvIdUser = (TextView) findViewById(R.id.idUser);
 
         handler = new Handler() {
             public void handleMessage(android.os.Message msg) {
@@ -116,6 +118,13 @@ public class PeerJSActivity extends Activity {
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("calling...");
+        progressDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(R.string.button_endcall), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                hardClose();
+            }
+        });
+
         progressDialog.setCancelable(false);
         progressDialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
@@ -162,7 +171,7 @@ public class PeerJSActivity extends Activity {
         buttonCall.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (client == null) {
+                if (quit[0]) {
                     progressDialog.show();
 
                 } else {
@@ -186,10 +195,8 @@ public class PeerJSActivity extends Activity {
             }
         });
 
-        remoteRender = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_FILL, false);
-        localRender = VideoRendererGui.create(1, 74, 25, 25, VideoRendererGui.ScalingType.SCALE_FILL, false);
-
-        //localRenderer.dispose();
+        remoteRender = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, false);
+        localRender = VideoRendererGui.create(1, 74, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, false);
 
         if (!factoryStaticInitialized) {
             PeerConnectionFactory.initializeAndroidGlobals(this, true, true, true, new Object());
@@ -242,7 +249,8 @@ public class PeerJSActivity extends Activity {
         if ( state == ON_CALL_STATE ) {
             buttonVideo.setVisibility(View.VISIBLE);
             buttonAudio.setVisibility(View.VISIBLE);
-            buttonCall.setText(getString(R.string.button_nocall));
+            buttonCall.setText(getString(R.string.button_endcall));
+
         } else if ( state == OFF_CALL_STATE ) {
             buttonVideo.setVisibility(View.INVISIBLE);
             buttonAudio.setVisibility(View.INVISIBLE);
@@ -255,6 +263,13 @@ public class PeerJSActivity extends Activity {
 
 
     void createPC() {
+
+        if (!wifiConnIsHighThen(60)) {
+            progressDialog.dismiss();
+            Toast.makeText(this, getString(R.string.low_internet_conn),Toast.LENGTH_LONG).show();
+            return;
+        }
+
         quit[0] = false;
 
         factory = new PeerConnectionFactory();
@@ -271,7 +286,8 @@ public class PeerJSActivity extends Activity {
         createDataChannelToRegressionTestBug2302(peerConnection);
         // проводим какую-то проверку подключения
 
-        logAndToast("Creating local video source...");
+        //logAndToast("Creating local video source...");
+        progressDialog.setMessage("Creating local video source...");
         MediaConstraints videoConstraints = new MediaConstraints();
         videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair("maxHeight", "240"));
         videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair("maxWidth", "320"));
@@ -303,8 +319,6 @@ public class PeerJSActivity extends Activity {
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        // Display the first 500 characters of the response string.
-                        //tvIdUser.setText(response);
                         onResponseGetID(response);
                     }
                 }, new Response.ErrorListener() {
@@ -355,8 +369,14 @@ public class PeerJSActivity extends Activity {
                 runOnUiThread(new Runnable() {
                     public void run() {
                         if (initiator){
-                            logAndToast("Creating offer...");
-                            peerConnection.createOffer(sdpObserver, sdpMediaConstraints);
+                            //logAndToast("Creating offer...");
+                            progressDialog.setMessage("Creating offer...");
+
+                            if ( peerConnection == null )
+                                disconnectAndExit();
+                            else
+                                peerConnection.createOffer(sdpObserver, sdpMediaConstraints);
+
                         }
                     }
                 });
@@ -398,14 +418,12 @@ public class PeerJSActivity extends Activity {
                                 tuningInterface(ON_CALL_STATE);
                                 progressDialog.dismiss();
                             } else if (type.equalsIgnoreCase("bye")) {
-                                logAndToast("Remote end hung up; dropping PeerConnection");
+                                //logAndToast("Remote end hung up; dropping PeerConnection");
+                                progressDialog.setMessage("Remote end hung up; dropping PeerConnection");
                                 disconnectAndExit();
-                            } else {
-                                //throw new RuntimeException("Unexpected message: " + data);
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
-                            //throw new RuntimeException(e);
                         }
                     }
                 });
@@ -430,6 +448,28 @@ public class PeerJSActivity extends Activity {
             }
         };
         client.connect();
+    }
+
+    private boolean wifiConnIsHighThen(int minSpeed) {
+        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+
+        if (wifiInfo == null)
+            return false;
+
+         return wifiInfo.getLinkSpeed() >= minSpeed;
+    }
+
+    private void hardClose() {
+        peerConnection.close();
+        peerConnection = null;
+
+        videoSource.stop();
+        videoSourceStopped = true;
+        videoSource = null;
+        factory = null;
+
+        disconnectAndExit();
     }
 
     // освобождаем все ресурсы и выходим
@@ -536,19 +576,10 @@ public class PeerJSActivity extends Activity {
 
         @Override
         public void onIceConnectionChange(PeerConnection.IceConnectionState newState) {
-            // here
-            if(newState.name().equals("DISCONNECTED")) {
-                peerConnection.close();
-                peerConnection = null;
-
-                videoSource.stop();
-                videoSourceStopped = true;
-                videoSource = null;
-                factory = null;
-
-                disconnectAndExit();
-            }
             Log.d("ON_CHANGE", "IceConnectionState = "+newState.name());
+            if(newState.name().equals("DISCONNECTED")) {
+                hardClose();
+            }
         }
 
         @Override
@@ -604,7 +635,9 @@ public class PeerJSActivity extends Activity {
         }
 
         private void sendLocalDescription() {
-            logAndToast("Sending " + localSdp.type);
+            //logAndToast("Sending " + localSdp.type);
+
+            progressDialog.setMessage("Sending " + localSdp.type);
             JSONObject json = new JSONObject();
             JSONObject payload = new JSONObject();
             JSONObject sdp = new JSONObject();
@@ -632,7 +665,8 @@ public class PeerJSActivity extends Activity {
                         }
                     } else {
                         if (peerConnection.getLocalDescription() == null) {
-                            logAndToast("Creating answer");
+                            //logAndToast("Creating answer");
+                            progressDialog.setMessage("Creating answer");
                             peerConnection.createAnswer(SDPObserver.this, sdpMediaConstraints);
                         } else {
                             sendLocalDescription();
@@ -675,7 +709,8 @@ public class PeerJSActivity extends Activity {
                     String name = "Camera " + index + ", Facing " + facing + ", Orientation " + orientation;
                     VideoCapturer capturer = VideoCapturer.create(name);
                     if (capturer != null) {
-                        logAndToast("Using camera: " + name);
+                        //logAndToast("Using camera: " + name);
+                        progressDialog.setMessage("Using camera: " + name);
                         return capturer;
                     }
                 }
@@ -690,14 +725,14 @@ public class PeerJSActivity extends Activity {
         super.onDestroy();
     }
 
-    private void logAndToast(String msg) {
+    /*private void logAndToast(String msg) {
         Log.d(TAG, msg);
         if (logToast != null) {
             logToast.cancel();
         }
         logToast = Toast.makeText(this, msg, Toast.LENGTH_SHORT);
         logToast.show();
-    }
+    } */
 
     private void sendMessage(JSONObject json) {
         client.send(json.toString()); // отправляем сообщение

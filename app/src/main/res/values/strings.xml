@@ -9,12 +9,13 @@
     <string name="hello_world">Hello world!</string>
     <string name="title_activity_message">MessageActivity</string>
 
-    <string name="button_nocall">No call</string>
+    <string name="button_endcall">End call</string>
     <string name="button_call">Call</string>
     <string name="button_novideo">No video</string>
     <string name="button_video">Video</string>
     <string name="button_noaudio">No audio</string>
     <string name="button_audio">Audio</string>
 
+    <string name="low_internet_conn">Internet connection is low</string>
 
 </resources>
